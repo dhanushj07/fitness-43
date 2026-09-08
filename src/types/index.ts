@@ -1,4 +1,4 @@
-export type UserRole = 'member' | 'admin';
+export type UserRole = 'member' | 'trainer' | 'admin';
 
 export interface User {
   id: string;
@@ -136,6 +136,8 @@ export interface PaymentRecord {
 }
 
 export interface PerformanceMetric {
+  id?: string;
+  memberId?: string;
   date: string;
   weightKg: number;
   bmi: number;
@@ -170,6 +172,17 @@ export interface AdminStats {
   attendanceRatePercent?: number;
 }
 
+export interface AppNotification {
+  id: string;
+  userId?: string;
+  title: string;
+  message: string;
+  type: 'attendance' | 'session' | 'workout' | 'renewal' | 'system';
+  timestamp: string;
+  read: boolean;
+  actionUrl?: string;
+}
+
 export type NavigationTab = 
   | 'landing'
   | 'login'
@@ -179,6 +192,9 @@ export type NavigationTab =
   | 'trainer-schedule'
   | 'subscriptions'
   | 'performance'
+  | 'trainer-dashboard'
+  | 'trainer-clients'
+  | 'trainer-workouts'
   | 'admin-dashboard'
   | 'admin-members'
   | 'admin-trainers'

@@ -15,14 +15,16 @@ import {
   Sparkles,
   Terminal,
   Activity,
+  Calendar,
 } from 'lucide-react';
-import { NavigationTab, User } from '../../types';
+import { NavigationTab, User, UserRole } from '../../types';
 
 interface SidebarProps {
   currentTab: NavigationTab;
   onSelectTab: (tab: NavigationTab) => void;
   currentUser: User | null;
   onLogout: () => void;
+  onSwitchRole?: (role: UserRole) => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
@@ -32,12 +34,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   currentUser,
   onLogout,
+  onSwitchRole,
   isMobileOpen,
   onCloseMobile,
 }) => {
-  const isAdmin = currentUser?.role === 'admin';
+  const role = currentUser?.role || 'member';
 
-  const memberNavItems: { tab: NavigationTab; label: string; icon: React.ReactNode; badge?: string }[] = [
+  const memberNavItems: { tab: NavigationTab; label: string; icon: React.ReactNode }[] = [
     { tab: 'member-dashboard', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
     { tab: 'workout-plans', label: 'Workout Plans', icon: <Dumbbell className="w-4 h-4" /> },
     { tab: 'attendance', label: 'Attendance & Check-in', icon: <CalendarCheck className="w-4 h-4" /> },
@@ -46,8 +49,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { tab: 'performance', label: 'Performance Analytics', icon: <LineChart className="w-4 h-4" /> },
   ];
 
-  const adminNavItems: { tab: NavigationTab; label: string; icon: React.ReactNode; badge?: string }[] = [
-    { tab: 'admin-dashboard', label: 'Admin Metrics', icon: <ShieldCheck className="w-4 h-4" /> },
+  const trainerNavItems: { tab: NavigationTab; label: string; icon: React.ReactNode }[] = [
+    { tab: 'trainer-dashboard', label: 'Coach Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { tab: 'trainer-schedule', label: 'Sessions & Schedule', icon: <Calendar className="w-4 h-4" /> },
+    { tab: 'admin-members', label: 'Assigned Athletes', icon: <Users className="w-4 h-4" /> },
+    { tab: 'admin-workouts', label: 'Workout Protocols', icon: <Dumbbell className="w-4 h-4" /> },
+  ];
+
+  const adminNavItems: { tab: NavigationTab; label: string; icon: React.ReactNode }[] = [
+    { tab: 'admin-dashboard', label: 'Center Metrics', icon: <ShieldCheck className="w-4 h-4" /> },
     { tab: 'admin-members', label: 'Member Directory', icon: <Users className="w-4 h-4" /> },
     { tab: 'admin-trainers', label: 'Trainers Staff', icon: <UserCheck className="w-4 h-4" /> },
     { tab: 'admin-plans', label: 'Membership Tiers', icon: <Layers className="w-4 h-4" /> },
@@ -55,6 +65,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { tab: 'admin-attendance', label: 'Daily Attendance Log', icon: <Clock className="w-4 h-4" /> },
     { tab: 'admin-renewals', label: 'Renewals & Invoices', icon: <RefreshCw className="w-4 h-4" /> },
   ];
+
+  const activeNavItems =
+    role === 'admin'
+      ? adminNavItems
+      : role === 'trainer'
+      ? trainerNavItems
+      : memberNavItems;
 
   const handleNav = (tab: NavigationTab) => {
     onSelectTab(tab);
@@ -95,14 +112,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </span>
             </div>
           </div>
-          {isAdmin && (
-            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
-              Admin
-            </span>
-          )}
+          <span
+            className={`px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
+              role === 'admin'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : role === 'trainer'
+                ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+                : 'bg-sky-500/10 border-sky-500/30 text-sky-400'
+            }`}
+          >
+            {role}
+          </span>
         </div>
 
-        {/* User Card */}
+        {/* User Profile Card */}
         {currentUser && (
           <div className="p-4 mx-3 my-3 rounded-xl bg-[#0F172A] border border-white/5 flex items-center gap-3">
             <img
@@ -118,14 +141,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Navigation links */}
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-6">
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-5">
           {/* Main Role Section */}
           <div>
             <div className="px-3 mb-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              {isAdmin ? 'Administration' : 'Member Portal'}
+              {role === 'admin' ? 'Administration' : role === 'trainer' ? 'Coach Portal' : 'Member Portal'}
             </div>
             <nav className="space-y-1">
-              {(isAdmin ? adminNavItems : memberNavItems).map(item => {
+              {activeNavItems.map((item) => {
                 const isActive = currentTab === item.tab;
                 return (
                   <button
@@ -150,45 +173,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </nav>
           </div>
 
-          {/* Quick Switch View (Demo Helper) */}
-          <div>
-            <div className="px-3 mb-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Role Perspective
+          {/* 3-Way Role Switch View (Interactive Perspective Switcher) */}
+          {onSwitchRole && (
+            <div>
+              <div className="px-3 mb-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Switch Perspective
+              </div>
+              <div className="grid grid-cols-3 gap-1 p-1 bg-[#0D1527] rounded-xl border border-white/5">
+                <button
+                  id="sidebar-role-member"
+                  onClick={() => onSwitchRole('member')}
+                  className={`py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
+                    role === 'member'
+                      ? 'bg-[#22C55E] text-black shadow-sm font-bold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Member
+                </button>
+                <button
+                  id="sidebar-role-trainer"
+                  onClick={() => onSwitchRole('trainer')}
+                  className={`py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
+                    role === 'trainer'
+                      ? 'bg-[#22C55E] text-black shadow-sm font-bold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Trainer
+                </button>
+                <button
+                  id="sidebar-role-admin"
+                  onClick={() => onSwitchRole('admin')}
+                  className={`py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
+                    role === 'admin'
+                      ? 'bg-[#22C55E] text-black shadow-sm font-bold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Admin
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#0D1527] rounded-xl border border-white/5">
-              <button
-                id="sidebar-role-member"
-                onClick={() => {
-                  onSelectTab('member-dashboard');
-                }}
-                className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  !isAdmin
-                    ? 'bg-[#22C55E] text-black shadow-sm font-bold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Member
-              </button>
-              <button
-                id="sidebar-role-admin"
-                onClick={() => {
-                  onSelectTab('admin-dashboard');
-                }}
-                className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  isAdmin
-                    ? 'bg-[#22C55E] text-black shadow-sm font-bold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Admin
-              </button>
-            </div>
-          </div>
+          )}
 
-          {/* System & API Specs */}
+          {/* System & Architecture Specs */}
           <div>
             <div className="px-3 mb-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Developer & Specs
+              Enterprise Specs
             </div>
             <button
               id="nav-api-docs"
@@ -201,7 +233,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2.5">
                 <Terminal className="w-4 h-4 text-sky-400" />
-                <span>API & PostgreSQL Schema</span>
+                <span>PostgreSQL & Redis Docs</span>
               </div>
               <Sparkles className="w-3 h-3 text-sky-400" />
             </button>

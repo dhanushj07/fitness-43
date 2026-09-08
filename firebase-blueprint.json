@@ -1,0 +1,207 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role-based access information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["member", "trainer", "admin"] },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "joinedDate": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "member": {
+      "title": "Member",
+      "description": "Fitness center member details and subscription status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["member"] },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "joinedDate": { "type": "string", "maxLength": 30 },
+        "membershipPlanId": { "type": "string", "maxLength": 64 },
+        "membershipStatus": { "type": "string", "enum": ["active", "expiring", "expired", "frozen"] },
+        "membershipExpiry": { "type": "string", "maxLength": 30 },
+        "emergencyContact": { "type": "string", "maxLength": 100 },
+        "heightCm": { "type": "number" },
+        "weightKg": { "type": "number" },
+        "targetWeightKg": { "type": "number" },
+        "attendanceGoalWeekly": { "type": "number" },
+        "assignedTrainerId": { "type": "string", "maxLength": 64 },
+        "trainerName": { "type": "string", "maxLength": 100 },
+        "assignedWorkoutPlanId": { "type": "string", "maxLength": 64 },
+        "activeSessionsAttended": { "type": "number" },
+        "totalSessionsExpected": { "type": "number" }
+      },
+      "required": ["id", "name", "email", "role", "membershipPlanId", "membershipStatus"]
+    },
+    "trainer": {
+      "title": "Trainer",
+      "description": "Fitness trainer / coach profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "specialization": { "type": "array" },
+        "experienceYears": { "type": "number" },
+        "rating": { "type": "number" },
+        "activeClientsCount": { "type": "number" },
+        "bio": { "type": "string", "maxLength": 1000 },
+        "availableSlots": { "type": "array" },
+        "availableDays": { "type": "array" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "workoutPlan": {
+      "title": "WorkoutPlan",
+      "description": "Prescribed gym workout routine protocol",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 100 },
+        "level": { "type": "string", "enum": ["Beginner", "Intermediate", "Advanced", "All Levels"] },
+        "durationWeeks": { "type": "number" },
+        "split": { "type": "string", "maxLength": 100 },
+        "sessionsPerWeek": { "type": "number" },
+        "exercises": { "type": "array" },
+        "targetMuscleGroups": { "type": "array" }
+      },
+      "required": ["id", "title", "level"]
+    },
+    "attendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Gym floor check-in record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "memberId": { "type": "string", "maxLength": 128 },
+        "memberName": { "type": "string", "maxLength": 100 },
+        "date": { "type": "string", "maxLength": 30 },
+        "checkInTime": { "type": "string", "maxLength": 30 },
+        "status": { "type": "string", "enum": ["present", "absent", "leave"] },
+        "location": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "memberId", "date", "status"]
+    },
+    "trainerSession": {
+      "title": "TrainerSession",
+      "description": "1-on-1 personal coaching appointment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "trainerId": { "type": "string", "maxLength": 128 },
+        "trainerName": { "type": "string", "maxLength": 100 },
+        "trainerSpecialty": { "type": "string", "maxLength": 100 },
+        "memberId": { "type": "string", "maxLength": 128 },
+        "memberName": { "type": "string", "maxLength": 100 },
+        "date": { "type": "string", "maxLength": 30 },
+        "timeSlot": { "type": "string", "maxLength": 30 },
+        "sessionType": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["confirmed", "completed", "cancelled"] },
+        "location": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "trainerId", "memberId", "date", "timeSlot", "status"]
+    },
+    "performanceMetric": {
+      "title": "PerformanceMetric",
+      "description": "Member biometric log and 1RM lifts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "memberId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "weightKg": { "type": "number" },
+        "bodyFatPercent": { "type": "number" },
+        "muscleMassKg": { "type": "number" },
+        "benchPressKg": { "type": "number" },
+        "squatKg": { "type": "number" },
+        "deadliftKg": { "type": "number" },
+        "restingHeartRate": { "type": "number" }
+      },
+      "required": ["id", "memberId", "date", "weightKg"]
+    },
+    "membershipPlan": {
+      "title": "MembershipPlan",
+      "description": "Membership tier definition",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "priceMonthly": { "type": "number" },
+        "billingPeriod": { "type": "string", "maxLength": 30 },
+        "features": { "type": "array" },
+        "isPopular": { "type": "boolean" },
+        "maxSessionsPerMonth": { "type": "number" },
+        "trainerIncluded": { "type": "boolean" },
+        "lockerAccess": { "type": "boolean" },
+        "saunaAccess": { "type": "boolean" }
+      },
+      "required": ["id", "name", "priceMonthly"]
+    },
+    "appNotification": {
+      "title": "AppNotification",
+      "description": "System or activity notification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 500 },
+        "type": { "type": "string", "enum": ["system", "attendance", "session", "workout", "renewal", "payment"] },
+        "timestamp": { "type": "string", "maxLength": 50 },
+        "read": { "type": "boolean" }
+      },
+      "required": ["id", "title", "message", "type", "read"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "userProfile",
+      "description": "User profile collection indexed by Firebase Auth UID"
+    },
+    "/members/{memberId}": {
+      "schema": "member",
+      "description": "Member membership information and health metrics"
+    },
+    "/trainers/{trainerId}": {
+      "schema": "trainer",
+      "description": "Trainer profiles and available time slots"
+    },
+    "/workoutPlans/{planId}": {
+      "schema": "workoutPlan",
+      "description": "Workout protocols and exercise catalogs"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "attendanceRecord",
+      "description": "Check-in logs at gym turnstiles"
+    },
+    "/sessions/{sessionId}": {
+      "schema": "trainerSession",
+      "description": "Personal trainer bookings and completion status"
+    },
+    "/metrics/{metricId}": {
+      "schema": "performanceMetric",
+      "description": "Member biometric metrics and lift PRs"
+    },
+    "/membershipPlans/{planId}": {
+      "schema": "membershipPlan",
+      "description": "Membership tiers and pricing"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "appNotification",
+      "description": "Real-time alert notifications"
+    }
+  }
+}

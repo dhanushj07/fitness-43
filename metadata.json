@@ -2,5 +2,7 @@
   "name": "FitFlow",
   "description": "Modern Fitness Center Management System for memberships, trainer scheduling, workout plans, attendance tracking, and performance analytics.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

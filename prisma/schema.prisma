@@ -1,0 +1,372 @@
+// FitFlow Prisma Relational Schema
+// Database Engine: PostgreSQL
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  MEMBER
+  TRAINER
+  ADMIN
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRING
+  EXPIRED
+  FROZEN
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+}
+
+enum BookingStatus {
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum PaymentStatus {
+  SUCCEEDED
+  PENDING
+  FAILED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  APPLE_PAY
+  BANK_TRANSFER
+}
+
+enum NotificationType {
+  ATTENDANCE
+  SESSION
+  WORKOUT
+  RENEWAL
+  SYSTEM
+}
+
+model User {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  passwordHash  String?
+  name          String
+  role          Role            @default(MEMBER)
+  avatarUrl     String?
+  phone         String?
+  googleId      String?         @unique
+  emailVerified DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  memberProfile  MemberProfile?
+  trainerProfile TrainerProfile?
+  notifications  Notification[]
+
+  @@map("users")
+}
+
+model MemberProfile {
+  id                     String           @id @default(uuid())
+  userId                 String           @unique
+  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emergencyContact       String?
+  heightCm               Float?
+  weightKg               Float?
+  targetWeightKg         Float?
+  attendanceGoalWeekly   Int              @default(4)
+  activeSessionsAttended Int              @default(0)
+  totalSessionsExpected  Int              @default(24)
+
+  assignedTrainerId      String?
+  assignedTrainer        TrainerProfile?  @relation("TrainerToMembers", fields: [assignedTrainerId], references: [id])
+
+  memberships            Membership[]
+  attendances            Attendance[]
+  bookings               Booking[]
+  workoutProgresses      WorkoutProgress[]
+  performanceRecords     PerformanceRecord[]
+  fitnessGoals           FitnessGoal[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  @@map("member_profiles")
+}
+
+model TrainerProfile {
+  id                 String           @id @default(uuid())
+  userId             String           @unique
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization     String[]         @default([])
+  experienceYears    Int              @default(1)
+  rating             Float            @default(5.0)
+  bio                String?
+  availableSlots     String[]         @default(["08:00 AM", "10:00 AM", "02:00 PM", "04:00 PM", "06:00 PM"])
+  availableDays      String[]         @default(["Mon", "Tue", "Wed", "Thu", "Fri"])
+
+  assignedMembers    MemberProfile[]  @relation("TrainerToMembers")
+  trainerSchedules   TrainerSchedule[]
+  bookings           Booking[]
+  createdWorkoutPlans WorkoutPlan[]
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@map("trainer_profiles")
+}
+
+model MembershipPlan {
+  id                  String         @id @default(uuid())
+  name                String         @unique // 'Basic' | 'Premium' | 'Pro'
+  priceMonthly        Float
+  priceYearly         Float
+  billingPeriod       String         @default("monthly")
+  badge               String?
+  isPopular           Boolean        @default(false)
+  features            String[]       @default([])
+  maxSessionsPerMonth Int            @default(12)
+  trainerIncluded     Boolean        @default(false)
+  lockerAccess        Boolean        @default(true)
+  saunaAccess         Boolean        @default(false)
+
+  memberships         Membership[]
+
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@map("membership_plans")
+}
+
+model Membership {
+  id               String           @id @default(uuid())
+  memberId         String
+  member           MemberProfile    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             MembershipPlan   @relation(fields: [planId], references: [id])
+  status           MembershipStatus @default(ACTIVE)
+  startDate        DateTime         @default(now())
+  expiryDate       DateTime
+  autoRenew        Boolean          @default(true)
+
+  subscriptions    Subscription[]
+  payments         Payment[]
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([memberId])
+  @@index([status])
+  @@map("memberships")
+}
+
+model WorkoutPlan {
+  id               String            @id @default(uuid())
+  title            String
+  category         String            // 'Chest', 'Back', 'Legs', 'Full Body', 'Cardio'
+  description      String?
+  level            String            // 'Beginner' | 'Intermediate' | 'Advanced'
+  durationWeeks    Int               @default(6)
+  daysPerWeek      Int               @default(4)
+  createdById      String?
+  createdBy        TrainerProfile?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  workoutExercises WorkoutExercise[]
+  workoutProgresses WorkoutProgress[]
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@map("workout_plans")
+}
+
+model Exercise {
+  id               String            @id @default(uuid())
+  name             String            @unique
+  category         String            // 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Cardio' | 'Core'
+  targetMuscle     String
+  difficulty       String            @default("Intermediate")
+  notes            String?
+
+  workoutExercises WorkoutExercise[]
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@map("exercises")
+}
+
+model WorkoutExercise {
+  id            String       @id @default(uuid())
+  workoutPlanId String
+  workoutPlan   WorkoutPlan  @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  exerciseId    String
+  exercise      Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  sets          Int          @default(4)
+  reps          String       @default("8-10")
+  restSeconds   Int          @default(90)
+  orderIndex    Int          @default(0)
+
+  @@map("workout_exercises")
+}
+
+model WorkoutProgress {
+  id            String       @id @default(uuid())
+  memberId      String
+  member        MemberProfile @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  workoutPlanId String
+  workoutPlan   WorkoutPlan  @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  completedExercises String[] @default([])
+  lastCompletedAt DateTime?
+  streakDays    Int          @default(0)
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([memberId, workoutPlanId])
+  @@map("workout_progress")
+}
+
+model Attendance {
+  id           String           @id @default(uuid())
+  memberId     String
+  member       MemberProfile    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  date         DateTime         @default(now())
+  checkInTime  String           // "07:15 AM"
+  checkOutTime String?
+  status       AttendanceStatus @default(PRESENT)
+  location     String           @default("Main Gym Floor")
+
+  createdAt    DateTime         @default(now())
+
+  @@index([memberId, date])
+  @@map("attendances")
+}
+
+model TrainerSchedule {
+  id        String         @id @default(uuid())
+  trainerId String
+  trainer   TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  dayOfWeek String         // "Mon", "Tue"
+  startTime String         // "08:00 AM"
+  endTime   String         // "05:00 PM"
+  isBlocked Boolean        @default(false)
+
+  @@map("trainer_schedules")
+}
+
+model Booking {
+  id               String         @id @default(uuid())
+  trainerId        String
+  trainer          TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  memberId         String
+  member           MemberProfile  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  date             DateTime
+  timeSlot         String         // "06:00 PM"
+  sessionType      String         // "1-on-1 PT"
+  status           BookingStatus  @default(CONFIRMED)
+  location         String         @default("Powerlifting Zone")
+  notes            String?
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([trainerId, date])
+  @@index([memberId, date])
+  @@map("bookings")
+}
+
+model Subscription {
+  id           String       @id @default(uuid())
+  membershipId String
+  membership   Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  startDate    DateTime     @default(now())
+  renewalDate  DateTime
+  priceCharged Float
+  isActive     Boolean      @default(true)
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  membershipId  String
+  membership    Membership    @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  amount        Float
+  paymentMethod PaymentMethod @default(CREDIT_CARD)
+  status        PaymentStatus @default(SUCCEEDED)
+  paidAt        DateTime      @default(now())
+  receiptUrl    String?
+
+  @@index([membershipId])
+  @@map("payments")
+}
+
+model PerformanceRecord {
+  id             String        @id @default(uuid())
+  memberId       String
+  member         MemberProfile @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  date           DateTime      @default(now())
+  weightKg       Float
+  bmi            Float
+  bodyFatPercent Float
+  chestCm        Float?
+  waistCm        Float?
+  bicepCm        Float?
+  thighCm        Float?
+  benchPressKg   Float?
+  squatKg        Float?
+  deadliftKg     Float?
+
+  createdAt      DateTime      @default(now())
+
+  @@index([memberId, date])
+  @@map("performance_records")
+}
+
+model FitnessGoal {
+  id              String        @id @default(uuid())
+  memberId        String
+  member          MemberProfile @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  title           String
+  targetValue     String
+  currentValue    String
+  deadline        DateTime
+  progressPercent Float         @default(0)
+  category        String        // 'Weight' | 'Strength' | 'Attendance' | 'Cardio'
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("fitness_goals")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  read      Boolean          @default(false)
+  actionUrl String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
+}

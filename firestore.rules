@@ -1,0 +1,172 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'admin@fitflow.io' ||
+        request.auth.token.email == 'dhanushj2007@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isTrainer() {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'trainer') ||
+        exists(/databases/$(database)/documents/trainers/$(request.auth.uid))
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------
+    // Users Collection
+    // -------------------------------------------------------------
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow update: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // Members Collection
+    // -------------------------------------------------------------
+    match /members/{memberId} {
+      allow get: if isSignedIn() && (
+        resource.data.id == request.auth.uid ||
+        resource.data.email == request.auth.token.email ||
+        isAdmin() ||
+        isTrainer()
+      );
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && (request.auth.uid == memberId || isAdmin());
+      allow update: if isSignedIn() && (
+        resource.data.id == request.auth.uid ||
+        resource.data.email == request.auth.token.email ||
+        isAdmin() ||
+        isTrainer()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // Trainers Collection (Public Gym Roster)
+    // -------------------------------------------------------------
+    match /trainers/{trainerId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == trainerId);
+    }
+
+    // -------------------------------------------------------------
+    // Workout Plans Collection (Public Routine Library)
+    // -------------------------------------------------------------
+    match /workoutPlans/{planId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isTrainer();
+    }
+
+    // -------------------------------------------------------------
+    // Attendance Records Collection
+    // -------------------------------------------------------------
+    match /attendance/{attendanceId} {
+      allow get: if isSignedIn() && (
+        resource.data.memberId == request.auth.uid ||
+        isAdmin() ||
+        isTrainer()
+      );
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // Trainer Sessions (Bookings) Collection
+    // -------------------------------------------------------------
+    match /sessions/{sessionId} {
+      allow get: if isSignedIn() && (
+        resource.data.memberId == request.auth.uid ||
+        resource.data.trainerId == request.auth.uid ||
+        isAdmin() ||
+        isTrainer()
+      );
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.memberId == request.auth.uid ||
+        resource.data.trainerId == request.auth.uid ||
+        isAdmin() ||
+        isTrainer()
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.memberId == request.auth.uid ||
+        resource.data.trainerId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // -------------------------------------------------------------
+    // Performance Metrics Collection
+    // -------------------------------------------------------------
+    match /metrics/{metricId} {
+      allow get: if isSignedIn() && (
+        resource.data.memberId == request.auth.uid ||
+        isAdmin() ||
+        isTrainer()
+      );
+      allow list: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // Membership Plans Collection (Public Pricing Catalog)
+    // -------------------------------------------------------------
+    match /membershipPlans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // Notifications Collection
+    // -------------------------------------------------------------
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && (
+        !('userId' in resource.data) ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // Test Connection Document
+    // -------------------------------------------------------------
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

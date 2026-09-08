@@ -16,11 +16,37 @@ import { Button } from '../components/common/Button';
 import { NavigationTab } from '../types';
 
 interface LandingPageProps {
-  onNavigate: (tab: NavigationTab) => void;
-  onLoginAs: (role: 'member' | 'admin') => void;
+  onNavigate?: (tab: NavigationTab | 'login' | 'api-docs') => void;
+  onLoginAs?: (role: 'member' | 'admin') => void;
+  onGetStarted?: () => void;
+  onLogin?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onLoginAs }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({
+  onNavigate,
+  onLoginAs,
+  onGetStarted,
+  onLogin,
+}) => {
+  const safeNavigate = (tab: NavigationTab | 'login' | 'api-docs') => {
+    if (typeof onNavigate === 'function') {
+      onNavigate(tab);
+    } else if (tab === 'login') {
+      if (typeof onLogin === 'function') onLogin();
+      else if (typeof onGetStarted === 'function') onGetStarted();
+    }
+  };
+
+  const safeLoginAs = (role: 'member' | 'admin') => {
+    if (typeof onLoginAs === 'function') {
+      onLoginAs(role);
+    } else if (typeof onLogin === 'function') {
+      onLogin();
+    } else if (typeof onGetStarted === 'function') {
+      onGetStarted();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0B1120] text-slate-100 selection:bg-[#22C55E] selection:text-black">
       {/* Top Navigation */}
@@ -40,7 +66,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onLoginAs 
             <a href="#benefits" className="hover:text-[#22C55E] transition-colors">Benefits</a>
             <a href="#plans" className="hover:text-[#22C55E] transition-colors">Memberships</a>
             <button
-              onClick={() => onNavigate('api-docs')}
+              onClick={() => safeNavigate('api-docs')}
               className="hover:text-sky-400 transition-colors flex items-center gap-1 text-slate-400"
             >
               Tech Architecture
@@ -51,14 +77,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onLoginAs 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onNavigate('login')}
+              onClick={() => safeNavigate('login')}
             >
               Sign In
             </Button>
             <Button
               variant="primary"
               size="sm"
-              onClick={() => onLoginAs('member')}
+              onClick={() => safeLoginAs('member')}
               rightIcon={<ArrowRight className="w-4 h-4" />}
             >
               Member Demo
@@ -66,7 +92,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onLoginAs 
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => onLoginAs('admin')}
+              onClick={() => safeLoginAs('admin')}
               className="hidden sm:inline-flex"
             >
               Admin Demo
@@ -101,7 +127,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onLoginAs 
               <Button
                 size="lg"
                 variant="primary"
-                onClick={() => onNavigate('login')}
+                onClick={() => safeNavigate('login')}
                 rightIcon={<ChevronRight className="w-5 h-5" />}
               >
                 Get Started Free
@@ -392,13 +418,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onLoginAs 
           </div>
 
           <div className="flex items-center gap-6 text-xs text-slate-400">
-            <button onClick={() => onNavigate('api-docs')} className="hover:text-white transition-colors">
+            <button onClick={() => safeNavigate('api-docs')} className="hover:text-white transition-colors">
               REST Architecture
             </button>
-            <button onClick={() => onNavigate('login')} className="hover:text-white transition-colors">
+            <button onClick={() => safeNavigate('login')} className="hover:text-white transition-colors">
               Member Sign-In
             </button>
-            <button onClick={() => onLoginAs('admin')} className="hover:text-white transition-colors">
+            <button onClick={() => safeLoginAs('admin')} className="hover:text-white transition-colors">
               Staff Portal
             </button>
           </div>

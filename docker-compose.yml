@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # -------------------------------------------------------------
+  # PostgreSQL Database Service
+  # -------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: fitflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fitflow_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-FitFlowSecure2026!}
+      POSTGRES_DB: ${POSTGRES_DB:-fitflow_production}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./prisma/seed.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fitflow_admin} -d ${POSTGRES_DB:-fitflow_production}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fitflow-network
+
+  # -------------------------------------------------------------
+  # Redis Caching & In-Memory Store
+  # -------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: fitflow-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD:-fitflow_redis_secure}"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-fitflow_redis_secure}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fitflow-network
+
+  # -------------------------------------------------------------
+  # FitFlow Full-Stack Application (Express + Vite + Socket.IO)
+  # -------------------------------------------------------------
+  fitflow-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitflow-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fitflow_admin}:${POSTGRES_PASSWORD:-FitFlowSecure2026!}@postgres:5432/${POSTGRES_DB:-fitflow_production}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD:-fitflow_redis_secure}@redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-fitflow_jwt_super_secret_enterprise_key_2026}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    ports:
+      - "3000:3000"
+    networks:
+      - fitflow-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  fitflow-network:
+    driver: bridge

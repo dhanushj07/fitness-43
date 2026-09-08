@@ -13,8 +13,8 @@ import {
 
 export const CURRENT_MEMBER: Member = {
   id: 'mem-101',
-  name: 'Alex Morgan',
-  email: 'alex.morgan@fitflow.io',
+  name: 'Dhanush',
+  email: 'dhanushj2007@gmail.com',
   role: 'member',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
   phone: '+1 (555) 234-5678',
